@@ -1,58 +1,69 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../services/api';
+import { supabase } from '../supabaseClient'; // Importa o nosso novo cliente Supabase
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const navigate = useNavigate();
-    const location = useLocation();
 
     useEffect(() => {
-        const checkUser = async () => {
-            try {
-                const { data } = await api.get('/api/auth/me');
-                setUser(data);
-            } catch (err) {
-                setUser(null);
-            } finally {
+        const getSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                setUser({ ...session.user, role: profile?.role || 'EMPLOYEE' });
+            }
+            setLoading(false);
+        };
+        
+        getSession();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (_event, session) => {
+                if (session?.user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('role')
+                        .eq('id', session.user.id)
+                        .single();
+
+                    setUser({ ...session.user, role: profile?.role || 'EMPLOYEE' });
+                } else {
+                    setUser(null);
+                }
                 setLoading(false);
             }
-        };
-        checkUser();
+        );
+
+        return () => subscription.unsubscribe();
     }, []);
 
     const login = async (email, password) => {
-        try {
-            setError(null);
-            const { data } = await api.post('/api/auth/login', { email, password });
-            setUser(data);
-            const targetPath = data.role === 'EMPLOYER' ? '/admin/dashboard' : '/employee/log';
-            navigate(targetPath);
-        } catch (err) {
-            setError(err.response?.data?.message || 'Erro ao fazer login.');
-            console.error(err);
-        }
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
     };
 
     const logout = async () => {
-        try {
-            await api.post('/api/auth/logout');
-            setUser(null);
-            navigate('/login');
-        } catch (err) {
-            console.error('Erro ao fazer logout', err);
-        }
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
     };
 
-    const value = { user, login, logout, loading, error, setLoading };
+    const value = {
+        user,
+        login,
+        logout,
+        loading,
+    };
 
     return (
         <AuthContext.Provider value={value}>
-            {children}
+            {!loading && children}
         </AuthContext.Provider>
     );
 };

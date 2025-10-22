@@ -1,16 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 
 const LoginPage = () => {
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
-    const { login, error } = useAuth();
+    const { login } = useAuth();
+    const navigate = useNavigate();
+    const [loginError, setLoginError] = useState(null);
 
     const onSubmit = async (data) => {
-        await login(data.email, data.password);
+        setLoginError(null);
+        try {
+            await login(data.email, data.password);
+            // O AuthContext vai tratar do re-direccionamento automaticamente
+            // quando o estado do utilizador mudar.
+        } catch (error) {
+            setLoginError(error.message || "Email ou senha inválidos.");
+        }
     };
 
     return (
@@ -41,7 +51,7 @@ const LoginPage = () => {
                         error={errors.password}
                     />
                     
-                    {error && <p className="text-center text-red-500 text-sm">{error}</p>}
+                    {loginError && <p className="text-center text-red-500 text-sm">{loginError}</p>}
 
                     <div>
                         <Button type="submit" fullWidth disabled={isSubmitting}>
