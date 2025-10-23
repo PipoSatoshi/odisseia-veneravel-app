@@ -4,7 +4,7 @@ import { supabase } from '../supabaseClient';
 // Contexto
 export const AuthContext = createContext(null);
 
-// Hook nomeado (é isto que o LoginPage importa)
+// Hook nomeado (é isto que as páginas importam)
 export function useAuth() {
   return useContext(AuthContext);
 }
