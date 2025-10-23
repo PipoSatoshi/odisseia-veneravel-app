@@ -1,30 +1,32 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 
-const AuthContext = createContext({
-  user: null,
-  loading: true,
-  login: async () => {},
-  logout: async () => {},
-});
+// Contexto
+export const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
+// Hook nomeado (é isto que o LoginPage importa)
+export function useAuth() {
+  return useContext(AuthContext);
+}
+
+// Provider
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (uid) => {
+  async function fetchRole(uid) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', uid)
       .single();
     return profile?.role || 'EMPLOYEE';
-  };
+  }
 
   useEffect(() => {
     let mounted = true;
 
-    const init = async () => {
+    async function init() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user && mounted) {
@@ -34,20 +36,22 @@ export const AuthProvider = ({ children }) => {
       } finally {
         if (mounted) setLoading(false);
       }
-    };
+    }
 
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!mounted) return;
-      if (session?.user) {
-        const role = await fetchRole(session.user.id);
-        setUser({ ...session.user, role });
-      } else {
-        setUser(null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!mounted) return;
+        if (session?.user) {
+          const role = await fetchRole(session.user.id);
+          setUser({ ...session.user, role });
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    );
 
     return () => {
       mounted = false;
@@ -55,27 +59,23 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const login = async (email, password) => {
+  async function login(email, password) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-  };
+  }
 
-  const logout = async () => {
+  async function logout() {
     try {
-      // limpar já o estado para evitar loops/redirecionamentos indesejados
+      // Limpa já o estado para evitar loops/redirecionamentos
       setUser(null);
       setLoading(false);
       await supabase.auth.signOut();
     } catch (e) {
       console.error('Erro ao terminar sessão:', e);
     }
-  };
+  }
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  const value = { user, loading, login, logout };
 
-export const useAuth = () => useContext(AuthContext);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
