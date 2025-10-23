@@ -1,7 +1,5 @@
 {
   "version": 2,
-  "analytics": false,
-  "speedInsights": false,
   "headers": [
     {
       "source": "/(.*)",
