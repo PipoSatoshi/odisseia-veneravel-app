@@ -1,0 +1,6 @@
+{
+  "errorProfileNotFound": "Perfil não encontrado. Contacte o administrador.",
+  "errorProfileFetch": "Erro ao carregar perfil. Tente novamente.",
+  "errorInvalidPhone": "Número de telemóvel inválido. Use o formato +351912345678.",
+  "errorInvalidCredentials": "Credenciais inválidas. Por favor, tente novamente."
+}
