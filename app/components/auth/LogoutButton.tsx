@@ -1,25 +1,28 @@
-'use client';
+'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabaseClient'
 
 export default function LogoutButton() {
-  const router = useRouter();
-  const supabase = createClientComponentClient();
+  const router = useRouter()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-    // O router.refresh() é importante para garantir que o estado é limpo
-    router.refresh(); 
-  };
+    try {
+      await supabase.auth.signOut()
+    } catch (e) {
+      console.error('Logout error:', (e as any)?.message || e)
+    } finally {
+      router.push('/')
+    }
+  }
 
   return (
     <button
       onClick={handleLogout}
-      className="absolute top-4 right-4 z-10 rounded bg-[#1D1D1B] py-1 px-3 text-sm text-[#9C9B9B] border border-[#9C9B9B] hover:bg-[#9C9B9B] hover:text-[#1D1D1B] focus:outline-none focus:ring-2 focus:ring-white"
+      className="px-4 py-2 text-sm font-medium text-white bg-eerie-black hover:bg-eerie-black-80 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-eerie-black"
+      aria-label="Terminar sessão"
     >
-      Logout
+      Terminar sessão
     </button>
-  );
+  )
 }

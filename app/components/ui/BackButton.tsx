@@ -1,44 +1,52 @@
-'use client';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabaseClient'
 
 export default function BackButton() {
-  const router = useRouter();
-  const [role, setRole] = useState<'driver' | 'admin' | null>(null);
-  
-  // Esta linha verifica se existe histórico de navegação no browser
-  const canGoBack = typeof window !== 'undefined' && window.history.length > 1;
+  const router = useRouter()
+  const [defaultRoute, setDefaultRoute] = useState('/driver')
 
   useEffect(() => {
-    const fetchRole = async () => {
-      const supabase = createClientComponentClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-        if (profile) setRole(profile.role);
-      }
-    };
-    fetchRole();
-  }, []);
+    async function resolveDefaultRoute() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          setDefaultRoute('/driver')
+          return
+        }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle()
 
-  const handleClick = () => {
-    // Se houver histórico, volta atrás
-    if (canGoBack) {
-      router.back();
-    // Se não houver histórico, vai para o dashboard do utilizador
-    } else if (role) {
-      router.push(`/${role}`);
+        if (profile?.role === 'admin') setDefaultRoute('/admin')
+        else setDefaultRoute('/driver')
+      } catch (e) {
+        console.error('BackButton profile error:', (e as any)?.message || e)
+        setDefaultRoute('/driver')
+      }
     }
-  };
+    resolveDefaultRoute()
+  }, [])
+
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push(defaultRoute)
+    }
+  }
 
   return (
     <button
-      onClick={handleClick}
-      className="fixed bottom-4 left-4 z-10 rounded-full bg-[#9C9B9B] h-12 w-12 flex items-center justify-center text-xl text-[#1D1D1B] hover:bg-opacity-80 focus:outline-none focus:ring-2 focus:ring-white"
+      onClick={handleBack}
+      className="px-4 py-2 text-sm font-medium text-eerie-black bg-silver-40 hover:bg-silver-60 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-eerie-black"
       aria-label="Voltar"
     >
-      &larr;
+      ← Voltar
     </button>
-  );
+  )
 }
