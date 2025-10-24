@@ -1,1 +1,4 @@
-json { "installCommand": "npm ci --prefer-online --no-audit --no-fund", "buildCommand": "npm run build" }
+{
+  "installCommand": "npm ci --prefer-online --no-audit --no-fund",
+  "buildCommand": "npm run build"
+}
