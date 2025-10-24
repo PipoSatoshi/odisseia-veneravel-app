@@ -1,45 +1,92 @@
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-  const supabase = createMiddlewareClient({ req, res })
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+        },
+      },
+    }
+  )
 
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
-  const { pathname } = req.nextUrl
+  const { pathname } = request.nextUrl
 
   const isAuthRoute = pathname === '/'
-  const isProtected =
-    pathname.startsWith('/driver') || pathname.startsWith('/admin')
+  const isProtected = pathname.startsWith('/driver') || pathname.startsWith('/admin')
 
-  // Sem sessão → proteger rotas
   if (!session && isProtected) {
-    return NextResponse.redirect(new URL('/', req.url))
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // Com sessão → redirecionar / para dashboard
   if (session && isAuthRoute) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', session.user.id)
-      .maybeSingle()
+      .single()
 
     if (profile?.role === 'admin') {
-      return NextResponse.redirect(new URL('/admin', req.url))
+      return NextResponse.redirect(new URL('/admin', request.url))
     }
     if (profile?.role === 'driver') {
-      return NextResponse.redirect(new URL('/driver', req.url))
+      return NextResponse.redirect(new URL('/driver', request.url))
     }
   }
 
-  return res
+  return response
 }
 
 export const config = {
-  matcher: ['/', '/driver/:path*', '/admin/:path*'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
 }
