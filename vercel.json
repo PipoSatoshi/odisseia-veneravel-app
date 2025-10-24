@@ -1,4 +1,4 @@
 {
-  "installCommand": "npm ci --prefer-online --no-audit --no-fund",
+  "installCommand": "npm install --prefer-online --no-audit --no-fund",
   "buildCommand": "npm run build"
 }
