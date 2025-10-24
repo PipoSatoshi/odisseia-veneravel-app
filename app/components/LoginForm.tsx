@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient' // Se der erro de caminho, ver nota no fim
+import { supabase } from '../../lib/supabaseClient' // caminho relativo a partir de app/components
 
 export default function LoginForm() {
   const router = useRouter()
@@ -22,8 +22,9 @@ export default function LoginForm() {
       })
       if (signInError) throw signInError
 
-      // Obter o role e redirecionar
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) {
         router.push('/')
         return
@@ -69,3 +70,37 @@ export default function LoginForm() {
               autoComplete="email"
             />
           </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-eerie-black">
+              Palavra‑passe
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 w-full rounded-md border border-silver-60 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-eerie-black"
+              required
+              autoComplete="current-password"
+            />
+          </div>
+
+          {error && (
+            <div role="alert" aria-live="assertive" className="text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-md bg-eerie-black text-white py-2 hover:bg-eerie-black-80 disabled:opacity-50"
+          >
+            {loading ? 'A entrar…' : 'Entrar'}
+          </button>
+        </form>
+      </div>
+    </main>
+  )
+}
