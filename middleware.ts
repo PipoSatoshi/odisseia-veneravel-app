@@ -4,29 +4,28 @@ export function middleware(req: NextRequest) {
   try {
     const { pathname } = req.nextUrl
 
-    // Rotas privadas (protegidas)
+    // Proteger apenas rotas privadas
     const isProtected =
       pathname.startsWith('/driver') || pathname.startsWith('/admin')
 
-    // Sinal mínimo de sessão (cookies criados pelo Supabase)
+    // Sinal mínimo de sessão (cookies do Supabase)
     const hasAccessToken =
       Boolean(req.cookies.get('sb-access-token')?.value) ||
       Boolean(req.cookies.get('sb:token')?.value)
 
-    // Sem sessão → redireciona rotas privadas para /
     if (!hasAccessToken && isProtected) {
       return NextResponse.redirect(new URL('/', req.url))
     }
 
-    // A redireção por role a partir de "/" é feita no cliente após login
     return NextResponse.next()
   } catch (e: any) {
-    // Nunca quebrar a app: se algo falhar, continua
     console.error('MW runtime error:', e?.message || e)
+    // Nunca quebrar a app
     return NextResponse.next()
   }
 }
 
 export const config = {
-  matcher: ['/', '/driver/:path*', '/admin/:path*'],
+  // NÃO inclui '/', só guarda /driver e /admin
+  matcher: ['/driver/:path*', '/admin/:path*'],
 }
